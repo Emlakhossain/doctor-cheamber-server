@@ -38,6 +38,7 @@ async function run() {
         const serviceCollection = client.db('doctors_protal').collection('services');
         const bookingCollection = client.db('doctors_protal').collection('bookings');
         const userCollection = client.db('doctors_protal').collection('users');
+        const doctorCollection = client.db('doctors_protal').collection('doctors');
 
         // get data
         app.get('/service', async (req, res) => {
@@ -133,6 +134,14 @@ async function run() {
             const result = await bookingCollection.insertOne(booking);
             return res.send({ success: true, result })
         });
+
+        // Add doctor Api in database
+        app.post('/doctor', async (req, res) => {
+            const doctor = req.body;
+            const result = await doctorCollection.insertOne(doctor);
+            res.send(result);
+        })
+
 
 
     }
