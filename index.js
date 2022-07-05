@@ -40,6 +40,20 @@ async function run() {
         const userCollection = client.db('doctors_protal').collection('users');
         const doctorCollection = client.db('doctors_protal').collection('doctors');
 
+
+        // verifyAdmin
+
+        const verifyAdmin = async (req, res, next) => {
+            const requester = req.decoded.email;
+            const requesterAccount = await userCollection.findOne({ email: requester });
+            if (requesterAccount.roll === 'admin') {
+                next();
+            }
+            else {
+                res.status(403).send({ message: 'forbidden' })
+            }
+        }
+
         // get data
         app.get('/service', async (req, res) => {
             const query = {};
@@ -60,23 +74,17 @@ async function run() {
             const isAdmin = user.roll === 'admin';
             res.send({ admin: isAdmin });
         })
-        app.put('/user/admin/:email', verifyJWT, async (req, res) => {
+        app.put('/user/admin/:email', verifyJWT, verifyAdmin, async (req, res) => {
             const email = req.params.email;
-            const requester = req.decoded.email;
-            const requesterAccount = await userCollection.findOne({ email: requester });
-            if (requesterAccount.roll === 'admin') {
-                const filter = { email: email };
-                const updateDoc = {
+            const filter = { email: email };
+            const updateDoc = {
+                $set: { roll: 'admin' },
 
-                    $set: { roll: 'admin' },
+            };
+            const result = await userCollection.updateOne(filter, updateDoc);
+            res.send(result);
 
-                };
-                const result = await userCollection.updateOne(filter, updateDoc);
-                res.send(result);
-            }
-            else {
-                res.status(403).send({ message: 'forbidden' })
-            }
+
         });
 
         app.put('/user/:email', async (req, res) => {
@@ -134,11 +142,22 @@ async function run() {
             const result = await bookingCollection.insertOne(booking);
             return res.send({ success: true, result })
         });
-
+        app.get('/doctor', verifyJWT, verifyAdmin, async (req, res) => {
+            const doctors = await doctorCollection.find().toArray();
+            res.send(doctors);
+        })
         // Add doctor Api in database
-        app.post('/doctor', async (req, res) => {
+        app.post('/doctor', verifyJWT, verifyAdmin, async (req, res) => {
             const doctor = req.body;
             const result = await doctorCollection.insertOne(doctor);
+            res.send(result);
+        });
+
+        // make sure delete API
+        app.delete('/doctor/:email', verifyJWT, verifyAdmin, async (req, res) => {
+            const email = req.params.email;
+            const filter = { email: email };
+            const result = await doctorCollection.deleteOne(filter);
             res.send(result);
         })
 
